@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nube de palabras – Trends (claro)</title>
+  <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #1f2d3d;      /* azul grisáceo oscuro para buen contraste */
+      --muted: #5b7a9a;   /* texto auxiliar */
+      --accent: #3da9fc;  /* azul claro */
+      --header-bg: #eef6ff; /* barra superior muy clarita */
+      --border: #dbeafe;  /* azul muy claro */
+    }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--fg);
+      background: var(--bg);
+    }
+    header {
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
+    }
+    h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .2px; color: var(--accent); }
+    #cloud {
+      height: calc(100vh - 66px);
+      width: 100%;
+      background: #ffffff;
+    }
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #ffffff, #f8fbff);
+      color: var(--fg);
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600; letter-spacing: .2px;
+      box-shadow: 0 2px 8px rgba(30, 64, 175, .06);
+    }
+    .btn:hover { border-color: #bfdbfe; box-shadow: 0 3px 10px rgba(30, 64, 175, .10); }
+    .hint { color: var(--muted); font-size: 13px; margin-left: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Chile — Nube de palabras (trend × count)</h1>
+    <button class="btn" id="download">Descargar PNG</button>
+    <span class="hint">Tip: clic en una palabra abre la búsqueda en X</span>
+  </header>
+
+  <div id="cloud"></div>
+
+  <script>
+    // Datos: [trend, count] — solo filas con count numérico
+    const data = [
+  ["Independiente", 414587],
+  ["Mario Marcel", 0],
+  ["Argentina", 237740],
+  ["Argentina", 237740],
+  ["#CopaSudamericana", 38068],
+  ["Hacienda", 13777],
+  ["Viera Gallo", 0],
+  ["Sutil", 15862],
+  ["Malvinas", 0],
+  ["#AutopistaEnLlamas", 0],
+  ["Cobardes", 20011],
+  ["Silksong", 119052],
+  ["Guerrero", 10075],
+  ["Bullrich", 22471],
+  ["Mataron", 43542],
+  ["#ContigoCHV", 0],
+  ["Kicillof", 18920],
+  ["Milei", 220836],
+  ["Buenos Aires", 32617],
+  ["Toselli", 0],
+  ["Cállate", 11717],
+  ["Elizalde", 0],
+  ["Grindetti", 29639],
+  ["Entel", 0],
+  ["Los de Abajo", 13561],
+  ["Libertadores de América", 38735],
+  ["Sepulveda", 0],
+  ["Castellón", 0],
+  ["Michael Clark", 0],
+  ["Ministro del Interior", 0],
+  ["Hollow Knight", 66422],
+  ["Enfermo", 20521],
+  ["Rivarola", 0],
+  ["Milad", 0],
+  ["Cabral", 0],
+  ["#MuchoGustoMega", 0],
+  ["#bulla", 0],
+  ["Simios", 24025],
+  ["Rendón", 0],
+  ["di yorio", 0],
+  ["Arranca", 0],
+  ["Edul", 0],
+  ["Falklands", 0],
+  ["Gastón", 10893],
+  ["En TyC", 0],
+  ["FRVS", 0],
+  ["Valenzuela", 0],
+  ["Agricultura", 0],
+  ["Cata Vallejos", 0],
+  ["Justificando", 0],
+];
+
+    // Escala logarítmica para distribuir tamaños
+    const weights = data.map(d => d[1]);
+    const log = v => Math.log(v + 1);
+    const logMin = Math.min(...weights.map(log));
+    const logMax = Math.max(...weights.map(log));
+    const minFont = 16;   // px
+    const maxFont = 88;   // px
+
+    // Paleta clara (azules/celestes)
+    const palette = [
+      "#60a5fa", /* azul claro */
+      "#93c5fd",
+      "#bae6fd",
+      "#a5f3fc",
+      "#7dd3fc",
+      "#c7d2fe",
+      "#bfdbfe",
+      "#e0f2fe",
+      "#3b82f6"  /* uno medio para contraste ocasional */
+    ];
+
+    function pickColor() {
+      return palette[Math.floor(Math.random() * palette.length)];
+    }
+
+    function drawCloud() {
+      const el = document.getElementById("cloud");
+      el.innerHTML = ""; // limpiar si se re-dibuja
+
+      WordCloud(el, {
+        list: data,
+        gridSize: Math.round(16 * (window.devicePixelRatio || 1)),
+        weightFactor: (w) => {
+          const t = (log(w) - logMin) / Math.max(1e-9, (logMax - logMin));
+          return minFont + t * (maxFont - minFont);
+        },
+        fontFamily: "Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+        color: 'random-dark',
+        backgroundColor: "transparent",
+        rotateRatio: 0.08,
+        rotationSteps: 2,
+        drawOutOfBound: false,
+        shrinkToFit: true,
+        click: (item) => {
+          if (!item) return;
+          const term = item[0];
+          const url = "https://twitter.com/search?q=" + encodeURIComponent(term);
+          window.open(url, "_blank", "noopener,noreferrer");
+        }
+      });
+    }
+
+    function downloadPNG() {
+      const canvas = document.querySelector("#cloud canvas");
+      if (!canvas) return;
+      const link = document.createElement("a");
+      link.download = "nube_trends_claro.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    window.addEventListener("load", drawCloud);
+    window.addEventListener("resize", () => {
+      clearTimeout(window.__wc_timer);
+      window.__wc_timer = setTimeout(drawCloud, 250);
+    });
+    document.getElementById("download").addEventListener("click", downloadPNG);
+  </script>
+</body>
+</html>
